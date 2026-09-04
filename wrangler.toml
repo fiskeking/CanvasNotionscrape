@@ -1,8 +1,8 @@
 # Cloudflare Worker configuration for canvas-notion-sync.
 #
 # Before deploying:
-#   1. Create a KV namespace and paste its id below:
-#        npx wrangler kv namespace create SETTINGS_KV
+#   1. The SETTINGS_KV namespace below is already provisioned in the account.
+#      To recreate it elsewhere: npx wrangler kv namespace create SETTINGS_KV
 #   2. Fill in the two ACCESS_* vars once you've created a Cloudflare Access
 #      application in front of this Worker (see README.md). You can set them
 #      here, or as secrets with `wrangler secret put`.
@@ -19,7 +19,7 @@ crons = ["*/15 * * * *"]
 
 [[kv_namespaces]]
 binding = "SETTINGS_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "5ffe6841ce454e4a91d805f871bae0c1"
 
 [vars]
 # Your Cloudflare Access team domain, e.g. "myteam.cloudflareaccess.com".
