@@ -1,0 +1,28 @@
+# Cloudflare Worker configuration for canvas-notion-sync.
+#
+# Before deploying:
+#   1. The SETTINGS_KV namespace below is already provisioned in the account.
+#      To recreate it elsewhere: npx wrangler kv namespace create SETTINGS_KV
+#   2. Fill in the two ACCESS_* vars once you've created a Cloudflare Access
+#      application in front of this Worker (see README.md). You can set them
+#      here, or as secrets with `wrangler secret put`.
+#
+name = "canvas-notion-sync"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+
+# The cron fires every 15 minutes. The Worker only actually syncs when your
+# configured interval (set on the settings page) has elapsed, so this is the
+# finest granularity you can pick — it does not force a sync every 15 min.
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[kv_namespaces]]
+binding = "SETTINGS_KV"
+id = "5ffe6841ce454e4a91d805f871bae0c1"
+
+[vars]
+# Your Cloudflare Access team domain, e.g. "myteam.cloudflareaccess.com".
+ACCESS_TEAM_DOMAIN = ""
+# The Access application's Audience (AUD) tag from the Access app's settings.
+ACCESS_AUD = ""
