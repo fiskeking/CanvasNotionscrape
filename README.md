@@ -75,9 +75,25 @@ Note the deployed URL (e.g. `https://canvas-notion-sync.<subdomain>.workers.dev`
 Until Access is configured (next step) the page shows a setup notice and the API
 refuses to expose anything.
 
-## 5. Put it behind Cloudflare Access
+## 5. Protect it
 
-In the **Cloudflare Zero Trust** dashboard:
+Pick **one** of the two options below. The Worker fails closed until one is set.
+
+### Option A — Password (simplest, works on `*.workers.dev`)
+
+Set a single Worker secret and you're done — no domain required:
+
+```bash
+npx wrangler secret put APP_PASSWORD   # type any password when prompted
+```
+
+The Worker then serves a login page and, on the correct password, sets a signed
+12-hour session cookie. Good enough for a single user.
+
+### Option B — Cloudflare Access (needs a custom domain)
+
+If `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD` are set they take precedence over the
+password. In the **Cloudflare Zero Trust** dashboard:
 
 1. **Access → Applications → Add an application → Self-hosted.**
 2. Set the application domain to your Worker's hostname. (Access works on a

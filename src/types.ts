@@ -6,6 +6,9 @@ export interface Env {
   ACCESS_TEAM_DOMAIN?: string;
   // Cloudflare Access application Audience (AUD) tag.
   ACCESS_AUD?: string;
+  // Fallback auth when Access isn't available (no custom domain): a password
+  // stored as a Worker secret. If ACCESS_* are set they take precedence.
+  APP_PASSWORD?: string;
 }
 
 export interface SyncToggles {

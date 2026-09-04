@@ -20,22 +20,57 @@ export function renderSetupPage(): string {
 </head>
 <body>
   <div class="card">
-    <h1>⚙️ Cloudflare Access isn't configured yet</h1>
+    <h1>⚙️ A login isn't configured yet</h1>
     <p>This tool refuses to expose your Canvas and Notion tokens until it is
-    protected. Set these two values (in <code>wrangler.toml</code> under
-    <code>[vars]</code>, or via <code>wrangler secret put</code>) and redeploy:</p>
+    protected. Choose one of these and redeploy:</p>
     <ul>
-      <li><code>ACCESS_TEAM_DOMAIN</code> — e.g. <code>myteam.cloudflareaccess.com</code></li>
-      <li><code>ACCESS_AUD</code> — the Audience (AUD) tag of your Access application</li>
+      <li><strong>Password (simplest):</strong> set a Worker secret
+      <code>APP_PASSWORD</code> to any password you like.</li>
+      <li><strong>Cloudflare Access</strong> (needs a custom domain): set
+      <code>ACCESS_TEAM_DOMAIN</code> (e.g. <code>myteam.cloudflareaccess.com</code>)
+      and <code>ACCESS_AUD</code> (your Access application's Audience tag).</li>
     </ul>
-    <p>See the <strong>README</strong> for how to create the Access application
-    in the Cloudflare Zero Trust dashboard.</p>
+    <p>See the <strong>README</strong> for details.</p>
   </div>
 </body>
 </html>`;
 }
 
-export function renderSettingsPage(email: string): string {
+export function renderLoginPage(error: boolean): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in — Canvas → Notion</title>
+<style>
+  :root { color-scheme: light dark; --bd: rgba(127,127,127,.3); }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; min-height: 100vh;
+         display: grid; place-items: center; }
+  form { border: 1px solid var(--bd); border-radius: 14px; padding: 1.75rem;
+         width: min(360px, 90vw); }
+  h1 { font-size: 1.15rem; margin: 0 0 1rem; }
+  input { width: 100%; box-sizing: border-box; padding: .6rem .7rem; font: inherit;
+          border: 1px solid var(--bd); border-radius: 8px; background: transparent;
+          color: inherit; }
+  button { width: 100%; margin-top: .8rem; padding: .6rem; font: inherit;
+           font-weight: 600; border: 0; border-radius: 8px; background: #2563eb;
+           color: #fff; cursor: pointer; }
+  .err { color: #dc2626; font-size: .85rem; margin: .6rem 0 0; }
+</style>
+</head>
+<body>
+  <form method="POST" action="/login">
+    <h1>📚 Canvas → Notion</h1>
+    <input type="password" name="password" placeholder="Password" autofocus autocomplete="current-password" />
+    <button type="submit">Sign in</button>
+    ${error ? '<p class="err">Incorrect password.</p>' : ""}
+  </form>
+</body>
+</html>`;
+}
+
+export function renderSettingsPage(email: string, showLogout = false): string {
   const who = email ? email.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
   return `<!doctype html>
 <html lang="en">
@@ -82,7 +117,7 @@ export function renderSettingsPage(email: string): string {
 </head>
 <body>
   <h1>📚 Canvas → Notion Sync</h1>
-  <div class="who">Signed in via Cloudflare Access${who ? " as " + who : ""}.</div>
+  <div class="who">${email ? "Signed in via Cloudflare Access as " + who + "." : "Signed in."}${showLogout ? ' &middot; <a href="/logout">Log out</a>' : ""}</div>
 
   <fieldset>
     <legend>Canvas</legend>

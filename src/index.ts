@@ -10,7 +10,13 @@ import {
 } from "./settings";
 import { runSync } from "./sync";
 import { NotionClient } from "./notion";
-import { renderSettingsPage, renderSetupPage } from "./ui";
+import {
+  checkPassword,
+  makeSessionCookie,
+  clearSessionCookie,
+  hasValidSession,
+} from "./password";
+import { renderSettingsPage, renderSetupPage, renderLoginPage } from "./ui";
 
 const MASK = "••••••••";
 
@@ -92,21 +98,60 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
-    const access = await verifyAccess(request, env);
+    const method = request.method;
+    const accessConfigured = !!(env.ACCESS_AUD && env.ACCESS_TEAM_DOMAIN);
+    const passwordConfigured = !!env.APP_PASSWORD;
 
-    if (access.setup) {
-      if (url.pathname === "/" && request.method === "GET") {
+    // Nothing configured yet — fail closed with a setup notice.
+    if (!accessConfigured && !passwordConfigured) {
+      if (url.pathname === "/" && method === "GET") {
         return html(renderSetupPage());
       }
-      return json({ error: "Cloudflare Access is not configured" }, 503);
+      return json({ error: "Authentication is not configured" }, 503);
     }
-    if (!access.ok) {
-      return json({ error: "Unauthorized", reason: access.reason }, 401);
+
+    // Password mode: /login and /logout are public (handled before the gate).
+    if (!accessConfigured && passwordConfigured) {
+      if (url.pathname === "/login" && method === "GET") {
+        return html(renderLoginPage(false));
+      }
+      if (url.pathname === "/login" && method === "POST") {
+        const form = await request.formData();
+        const pw = String(form.get("password") || "");
+        if (await checkPassword(pw, env)) {
+          return new Response(null, {
+            status: 303,
+            headers: { Location: "/", "Set-Cookie": await makeSessionCookie(env) },
+          });
+        }
+        return html(renderLoginPage(true), 401);
+      }
+      if (url.pathname === "/logout") {
+        return new Response(null, {
+          status: 303,
+          headers: { Location: "/login", "Set-Cookie": clearSessionCookie() },
+        });
+      }
+    }
+
+    // Authentication gate.
+    let email = "";
+    if (accessConfigured) {
+      const access = await verifyAccess(request, env);
+      if (!access.ok) {
+        return json({ error: "Unauthorized", reason: access.reason }, 401);
+      }
+      email = access.email || "";
+    } else if (!(await hasValidSession(request, env))) {
+      if (url.pathname.startsWith("/api/")) {
+        return json({ error: "Unauthorized" }, 401);
+      }
+      return Response.redirect(new URL("/login", url).toString(), 302);
     }
 
     try {
-      if (request.method === "GET" && url.pathname === "/") {
-        return html(renderSettingsPage(access.email || ""));
+      if (method === "GET" && url.pathname === "/") {
+        return html(renderSettingsPage(email, passwordConfigured));
       }
       if (url.pathname === "/api/settings") {
         if (request.method === "GET") return getSettings(env);
